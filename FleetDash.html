@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FleetDash - Vehicle Tracking</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef3f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #154360;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #555;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .card {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px #ccc;
+        }
+
+        .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2874a6;
+        }
+
+        .map {
+            height: 350px;
+            background: #dcebdc;
+            border: 2px solid #aaa;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            background-image:
+                linear-gradient(#ffffff55 1px, transparent 1px),
+                linear-gradient(90deg, #ffffff55 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .zone {
+            position: absolute;
+            left: 40%;
+            top: 30%;
+            width: 180px;
+            height: 130px;
+            background: #ff000022;
+            border: 2px dashed red;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: darkred;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .vehicle {
+            position: absolute;
+            font-size: 25px;
+            transform: translate(-50%, -50%);
+            transition: left 0.2s linear, top 0.2s linear;
+            z-index: 2;
+        }
+
+        button {
+            background: #2874a6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        button:hover {
+            background: #154360;
+        }
+
+        .alerts {
+            background: white;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .alert {
+            color: red;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .vehicle-list {
+            background: white;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+
+        .vehicle-row {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .safe {
+            color: green;
+        }
+
+        .danger {
+            color: red;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .stats {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>FLEETDASH</h1>
+
+    <p class="subtitle">
+        Real-Time Fleet Telemetry Dashboard
+    </p>
+
+    <!-- Dashboard statistics -->
+    <div class="stats">
+
+        <div class="card">
+            <div>Total Vehicles</div>
+            <div class="number" id="total">5</div>
+        </div>
+
+        <div class="card">
+            <div>Active Vehicles</div>
+            <div class="number" id="active">5</div>
+        </div>
+
+        <div class="card">
+            <div>Geofence Alerts</div>
+            <div class="number" id="alertCount">0</div>
+        </div>
+
+    </div>
+
+    <!-- Map display -->
+    <h2>Live Vehicle Map</h2>
+
+    <div class="map" id="map">
+
+        <div class="zone">
+            RESTRICTED ZONE
+        </div>
+
+    </div>
+
+    <div style="text-align:center;">
+        <button onclick="startTracking()">
+            Start Tracking
+        </button>
+
+        <button onclick="stopTracking()">
+            Stop Tracking
+        </button>
+    </div>
+
+    <!-- Vehicle details -->
+    <div class="vehicle-list">
+
+        <h2>Vehicle Details</h2>
+
+        <div id="vehicleDetails"></div>
+
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts">
+
+        <h2>Geofence Alerts</h2>
+
+        <div id="alerts">
+            No alerts detected.
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    // Vehicle information
+    const vehicles = [
+        { id: "TRUCK-101", x: 10, y: 15, dx: 1, dy: 0.5 },
+        { id: "TRUCK-102", x: 20, y: 75, dx: 0.8, dy: -0.4 },
+        { id: "TRUCK-103", x: 75, y: 20, dx: -0.5, dy: 0.7 },
+        { id: "TRUCK-104", x: 85, y: 80, dx: -0.7, dy: -0.5 },
+        { id: "TRUCK-105", x: 15, y: 45, dx: 1.1, dy: 0.3 }
+    ];
+
+    let tracking = false;
+    let timer = null;
+    let alertCount = 0;
+
+    const map = document.getElementById("map");
+
+    // Create vehicle icons
+    vehicles.forEach(vehicle => {
+
+        let icon = document.createElement("div");
+
+        icon.className = "vehicle";
+        icon.id = vehicle.id;
+        icon.textContent = "🚚";
+
+        map.appendChild(icon);
+
+    });
+
+    // Check restricted zone
+    function isInsideZone(vehicle) {
+
+        return (
+            vehicle.x >= 40 &&
+            vehicle.x <= 65 &&
+            vehicle.y >= 30 &&
+            vehicle.y <= 65
+        );
+
+    }
+
+    // Update vehicle positions
+    function updateVehicles() {
+
+        vehicles.forEach(vehicle => {
+
+            vehicle.x += vehicle.dx;
+            vehicle.y += vehicle.dy;
+
+            // Keep vehicles inside map
+            if (vehicle.x > 95 || vehicle.x < 5) {
+                vehicle.dx *= -1;
+            }
+
+            if (vehicle.y > 90 || vehicle.y < 5) {
+                vehicle.dy *= -1;
+            }
+
+            // Display vehicle position
+            let icon = document.getElementById(vehicle.id);
+
+            icon.style.left = vehicle.x + "%";
+            icon.style.top = vehicle.y + "%";
+
+            // Detect geofence entry
+            if (isInsideZone(vehicle)) {
+
+                icon.textContent = "⚠️";
+
+                if (!vehicle.alerted) {
+
+                    vehicle.alerted = true;
+                    alertCount++;
+
+                    addAlert(vehicle.id);
+
+                }
+
+            } else {
+
+                icon.textContent = "🚚";
+                vehicle.alerted = false;
+
+            }
+
+        });
+
+        updateDetails();
+
+        document.getElementById("alertCount").textContent =
+            alertCount;
+
+    }
+
+    // Display vehicle information
+    function updateDetails() {
+
+        let html = "";
+
+        vehicles.forEach(vehicle => {
+
+            let status = isInsideZone(vehicle)
+                ? "Inside Restricted Zone"
+                : "Safe";
+
+            html += `
+                <div class="vehicle-row">
+                    <b>${vehicle.id}</b> -
+                    Position: ${vehicle.x.toFixed(1)},
+                    ${vehicle.y.toFixed(1)}
+                    <span class="${isInsideZone(vehicle) ? 'danger' : 'safe'}">
+                        ${status}
+                    </span>
+                </div>
+            `;
+
+        });
+
+        document.getElementById("vehicleDetails").innerHTML =
+            html;
+
+    }
+
+    // Display alert
+    function addAlert(vehicleId) {
+
+        let alertArea = document.getElementById("alerts");
+
+        if (alertArea.textContent === "No alerts detected.") {
+            alertArea.innerHTML = "";
+        }
+
+        let message = document.createElement("div");
+
+        message.className = "alert";
+        message.textContent =
+            "WARNING: " + vehicleId +
+            " entered the restricted zone!";
+
+        alertArea.prepend(message);
+
+    }
+
+    // Start vehicle tracking
+    function startTracking() {
+
+        if (tracking) return;
+
+        tracking = true;
+
+        timer = setInterval(updateVehicles, 200);
+
+    }
+
+    // Stop vehicle tracking
+    function stopTracking() {
+
+        tracking = false;
+
+        clearInterval(timer);
+
+    }
+
+    // Initial display
+    updateDetails();
+
+</script>
+
+</body>
+</html>

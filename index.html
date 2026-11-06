@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetDash - Vehicle Tracking</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>FLEETDASH</h1>
+
+    <p class="subtitle">
+        Real-Time Fleet Telemetry Dashboard
+    </p>
+
+    <!-- Dashboard statistics -->
+    <div class="stats">
+        <div class="card">
+            <div>Total Vehicles</div>
+            <div class="number" id="total">5</div>
+        </div>
+
+        <div class="card">
+            <div>Active Vehicles</div>
+            <div class="number" id="active">5</div>
+        </div>
+
+        <div class="card">
+            <div>Geofence Alerts</div>
+            <div class="number" id="alertCount">0</div>
+        </div>
+    </div>
+
+    <!-- Map display -->
+    <h2>Live Vehicle Map</h2>
+
+    <div class="map" id="map">
+        <div class="zone">
+            RESTRICTED ZONE
+        </div>
+    </div>
+
+    <div style="text-align:center;">
+        <button onclick="startTracking()">
+            Start Tracking
+        </button>
+
+        <button onclick="stopTracking()">
+            Stop Tracking
+        </button>
+    </div>
+
+    <!-- Vehicle details -->
+    <div class="vehicle-list">
+        <h2>Vehicle Details</h2>
+        <div id="vehicleDetails"></div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts">
+        <h2>Geofence Alerts</h2>
+        <div id="alerts">
+            No alerts detected.
+        </div>
+    </div>
+
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
